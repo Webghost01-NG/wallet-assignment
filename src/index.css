@@ -35,7 +35,7 @@ h2 {
 
 p {
   margin: 0.4rem 0;
-  word-break: break-all; /* long wallet addresses won't overflow */
+  word-break: break-all;
 }
 
 button {

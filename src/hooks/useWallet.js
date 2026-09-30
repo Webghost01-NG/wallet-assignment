@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { BrowserProvider, formatEther } from "ethers";
 import { isSupportedChain } from "../constants/chains";
 
 const STORAGE_KEY = "connectedWalletRdns";
@@ -8,21 +9,23 @@ export function useWallet(providers) {
   const [account, setAccount] = useState("");
   const [chainId, setChainId] = useState(0);
   const [error, setError] = useState("");
+  const [balance, setBalance] = useState("");
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const reset = useCallback(() => {
     setSelected(null);
     setAccount("");
     setChainId(0);
+    setBalance("");
   }, []);
-  
-  //  let us listen to events from the selected provider
-    useEffect(() => {
+
+  useEffect(() => {
     if (!selected) return;
     const { provider } = selected;
 
     function handleAccountsChanged(accounts) {
       if (accounts.length === 0) {
-        // wallet is supposed to be connected, but user disconnected it from the wallet side, so we reset our state and remove the localStorage entry
         localStorage.removeItem(STORAGE_KEY);
         reset();
       } else {
@@ -44,7 +47,6 @@ export function useWallet(providers) {
     };
   }, [selected, reset]);
 
- // no-popup auto reconnect logic, if the user has previously connected a wallet, we try to reconnect it silently without any popup, if the wallet is still available and the user has not disconnected it from the wallet side
   useEffect(() => {
     if (selected) return;
     const savedRdns = localStorage.getItem(STORAGE_KEY);
@@ -75,8 +77,36 @@ export function useWallet(providers) {
       cancelled = true;
     };
   }, [providers, selected]);
- // popup only connect logic, if the user has not previously connected a wallet, we show a popup to let the user select a wallet and connect it
-   const connect = useCallback(async (walletDetail) => {
+
+  useEffect(() => {
+    if (!selected || !account) {
+      setBalance("");
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      setBalanceLoading(true);
+      try {
+        const provider = new BrowserProvider(selected.provider);
+        const wei = await provider.getBalance(account);
+        if (!cancelled) setBalance(formatEther(wei));
+      } catch (err) {
+        if (!cancelled) setError("Could not fetch balance: " + err.message);
+      } finally {
+        if (!cancelled) setBalanceLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected, account, chainId, refreshTick]);
+
+  const refreshBalance = useCallback(() => setRefreshTick((t) => t + 1), []);
+
+  const connect = useCallback(async (walletDetail) => {
     setError("");
     try {
       const accounts = await walletDetail.provider.request({
@@ -89,16 +119,22 @@ export function useWallet(providers) {
       setChainId(parseInt(hex, 16));
       localStorage.setItem(STORAGE_KEY, walletDetail.info.rdns);
     } catch (err) {
-      setError(
-        err.code === 4001 ? "You rejected the connection request." : err.message
-      );
+      if (err.code === 4001) {
+        setError("You rejected the connection request.");
+      } else if (err.code === -32002) {
+        setError(
+          "A request is already pending. Open your wallet extension and approve or reject it."
+        );
+      } else {
+        setError(err.message);
+      }
     }
   }, []);
-// trying the disconnect here, hoping this would work, if it works, do not touch it!.
+
   const disconnect = useCallback(async () => {
     const provider = selected?.provider;
     localStorage.removeItem(STORAGE_KEY);
-    reset();
+    reset(); // listeners are removed by the effect cleanup above
     setError("");
 
     try {
@@ -108,12 +144,9 @@ export function useWallet(providers) {
       });
     } catch {
     }
+  }, [selected, reset]);
 
-}, 
-[selected, reset]);
-
-// switching to supporting chains here!!!. LFG
-const switchChain = useCallback(
+  const switchChain = useCallback(
     async (chain) => {
       if (!selected) return;
       setError("");
@@ -126,8 +159,12 @@ const switchChain = useCallback(
         });
         // success -> chainChanged fires -> state updates itself
       } catch (err) {
-        if (err.code === 4902) {
-        // wallet does not know about this chain, so we try to add it first so wallet can switch to it properly, lets hope this works out
+        // some wallets nest the real 4902 code inside err.data.originalError
+        const notAdded =
+          err.code === 4902 || err?.data?.originalError?.code === 4902;
+
+        if (notAdded) {
+          // wallet doesn't know this chain: add it, then switch
           try {
             await provider.request({
               method: "wallet_addEthereumChain",
@@ -172,6 +209,9 @@ const switchChain = useCallback(
     error,
     isConnected,
     isUnsupported,
+    balance,
+    balanceLoading,
+    refreshBalance,
     connect,
     disconnect,
     switchChain,
