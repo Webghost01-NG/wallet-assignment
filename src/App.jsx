@@ -15,6 +15,7 @@ function App() {
     isConnected,
     isUnsupported,
     balance,
+    balanceError,
     balanceLoading,
     refreshBalance,
     connect,
@@ -38,6 +39,7 @@ function App() {
             account={account}
             chainId={chainId}
             balance={balance}
+            balanceError={balanceError}
             balanceLoading={balanceLoading}
             onRefresh={refreshBalance}
             onDisconnect={disconnect}

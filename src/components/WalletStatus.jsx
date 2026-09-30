@@ -5,12 +5,18 @@ export default function WalletStatus({
   account,
   chainId,
   balance,
+  balanceError,
   balanceLoading,
   onRefresh,
   onDisconnect,
 }) {
   const chain = getChainById(chainId);
   const symbol = chain?.currency.symbol ?? "";
+
+  let balanceText = "-";
+  if (balanceLoading) balanceText = "Loading...";
+  else if (balanceError) balanceText = "Unavailable";
+  else if (balance) balanceText = `${balance} ${symbol}`;
 
   return (
     <div style={{ border: "1px solid #888", padding: 16, borderRadius: 8 }}>
@@ -20,10 +26,11 @@ export default function WalletStatus({
       <p>
         Chain ID: {chainId} {chain ? `(${chain.name})` : "(unsupported)"}
       </p>
-      <p>
-        Balance:{" "}
-        {balanceLoading ? "Loading..." : balance ? `${balance} ${symbol}` : "-"}
-      </p>
+      <p>Balance: {balanceText}</p>
+
+      {balanceError && !balanceLoading && (
+        <p style={{ color: "#e0a030", fontSize: "0.85rem" }}>{balanceError}</p>
+      )}
 
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
         <button onClick={onRefresh} disabled={balanceLoading}>
