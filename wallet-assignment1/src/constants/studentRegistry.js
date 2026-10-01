@@ -6,8 +6,8 @@ export const CONTRACT_CHAIN_ID = 11155111; // Ethereum Sepolia (must be in SUPPO
 
 export const CONTRACT_CONFIGURED = isAddress(CONTRACT_ADDRESS);
 
-// Multicall3 is deployed at this same address on almost every chain
-export const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
+// Multicall2 deployment on Ethereum Sepolia
+export const MULTICALL2_ADDRESS = import.meta.env.VITE_MULTICALL2_ADDRESS ?? "0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696";
 
 // Optional: used only by the "Import from explorer" button
 export const EXPLORER_API_KEY = import.meta.env.VITE_EXPLORER_API_KEY ?? "";
@@ -18,6 +18,6 @@ export const STUDENT_ABI = [
   "function registered(address) view returns (bool)",
 ];
 
-export const MULTICALL3_ABI = [
-  "function aggregate3(tuple(address target, bool allowFailure, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[] returnData)",
+export const MULTICALL2_ABI = [
+  "function aggregate(tuple(address target, bytes callData)[] calls) returns (uint256 blockNumber, bytes[] returnData)",
 ];
