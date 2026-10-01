@@ -33,7 +33,7 @@ export function useWallet(providers) {
     setBalanceError("");
   }, []);
 
-  // ---- Assignment 1: wallet events drive React state ----
+  // ---- Wallet events drive React state ----
   useEffect(() => {
     if (!selected) return;
     const { provider } = selected;
@@ -155,7 +155,7 @@ export function useWallet(providers) {
     }
   }, []);
 
-  // ---- Assignment 2a: disconnect ----
+  // ---- Disconnect ----
   const disconnect = useCallback(async () => {
     const provider = selected?.provider;
     localStorage.removeItem(STORAGE_KEY);
@@ -173,7 +173,7 @@ export function useWallet(providers) {
     }
   }, [selected, reset]);
 
-  // ---- Assignment 2b: switch to a supported chain ----
+  // ---- Switch to a supported chain ----
   const switchChain = useCallback(
     async (chain) => {
       if (!selected) return;
@@ -232,6 +232,7 @@ export function useWallet(providers) {
 
   return {
     walletInfo: selected?.info ?? null,
+    rawProvider: selected?.provider ?? null,
     account,
     chainId,
     error,

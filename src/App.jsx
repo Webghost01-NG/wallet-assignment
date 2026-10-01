@@ -2,6 +2,7 @@ import { useProviderDiscovery } from "./hooks/useProviderDiscovery";
 import { useWallet } from "./hooks/useWallet";
 import WalletList from "./components/WalletList";
 import WalletStatus from "./components/WalletStatus";
+import ChainSwitcher from "./components/ChainSwitcher";
 import UnsupportedChainBanner from "./components/UnsupportedChainBanner";
 
 function App() {
@@ -13,14 +14,19 @@ function App() {
     error,
     isConnected,
     isUnsupported,
+    balance,
+    balanceError,
+    balanceLoading,
+    refreshBalance,
     connect,
     disconnect,
     switchChain,
   } = useWallet(providers);
 
   return (
-<div>
-  <h1>Wallet Connect (EIP-1193 + EIP-6963)</h1>
+    <div>
+      <h1>Wallet Connect (EIP-1193 + EIP-6963)</h1>
+
       {error && <p style={{ color: "#c0392b" }}>{error}</p>}
 
       {isConnected ? (
@@ -32,8 +38,13 @@ function App() {
             walletInfo={walletInfo}
             account={account}
             chainId={chainId}
+            balance={balance}
+            balanceError={balanceError}
+            balanceLoading={balanceLoading}
+            onRefresh={refreshBalance}
             onDisconnect={disconnect}
           />
+          <ChainSwitcher chainId={chainId} onSwitch={switchChain} />
         </>
       ) : (
         <WalletList wallets={providers} onConnect={connect} />
