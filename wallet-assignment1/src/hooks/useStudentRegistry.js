@@ -11,8 +11,8 @@ import {
   CONTRACT_CHAIN_ID,
   CONTRACT_CONFIGURED,
   STUDENT_ABI,
-  MULTICALL3_ADDRESS,
-  MULTICALL3_ABI,
+  MULTICALL2_ADDRESS,
+  MULTICALL2_ABI,
   EXPLORER_API_KEY,
 } from "../constants/studentRegistry";
 
@@ -142,29 +142,26 @@ export function useStudentRegistry({ rawProvider, account, chainId }) {
       try {
         const provider = new BrowserProvider(rawProvider);
         const multicall = new Contract(
-          MULTICALL3_ADDRESS,
-          MULTICALL3_ABI,
+          MULTICALL2_ADDRESS,
+          MULTICALL2_ABI,
           provider
         );
 
         const calls = addresses.map((addr) => ({
           target: CONTRACT_ADDRESS,
-          allowFailure: true, // getStudent reverts for unregistered addresses
           callData: studentIface.encodeFunctionData("getStudent", [addr]),
         }));
 
-        // aggregate3 is payable, so staticCall makes it a read, not a transaction
-        const results = await multicall.aggregate3.staticCall(calls);
+        // Multicall2 aggregate is non-view; staticCall keeps this as a free read.
+        const [, results] = await multicall.aggregate.staticCall(calls);
         if (cancelled) return;
 
         const list = [];
         results.forEach((result, i) => {
-          const [success, returnData] = result;
-          if (!success) return; // not registered, skip
-          const [name, age, course] = studentIface.decodeFunctionResult(
-            "getStudent",
-            returnData
-          );
+          let name; let age; let course;
+          try {
+            [name, age, course] = studentIface.decodeFunctionResult("getStudent", result);
+          } catch { return; } // getStudent reverts for addresses without a profile.
           list.push({
             address: addresses[i],
             name,
